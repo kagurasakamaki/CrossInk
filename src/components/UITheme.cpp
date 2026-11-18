@@ -23,6 +23,7 @@
 #include "components/themes/lyra/LyraCarouselTheme.h"
 #include "components/themes/lyra/LyraTheme.h"
 #include "components/themes/minimal/MinimalTheme.h"
+#include "components/themes/ocean/OceanTheme.h"
 #include "components/themes/roundedraff/RoundedRaffTheme.h"
 
 namespace {
@@ -124,6 +125,11 @@ void UITheme::setTheme(CrossPointSettings::UI_THEME type) {
       LOG_DBG("UI", "Using Dashboard theme");
       currentTheme = std::make_unique<DashboardTheme>();
       currentMetrics = &DashboardMetrics::values;
+      break;
+    case CrossPointSettings::UI_THEME::OCEAN:
+      LOG_DBG("UI", "Using Ocean theme");
+      currentTheme = std::make_unique<OceanTheme>();
+      currentMetrics = &OceanMetrics::values;
       break;
     default:
       LOG_ERR("UI", "Unknown theme %d, falling back to Classic", static_cast<int>(type));
