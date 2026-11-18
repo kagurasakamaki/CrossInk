@@ -1,4 +1,6 @@
+
 name: Compile Release
+
 on:
   workflow_dispatch:
     inputs:
@@ -15,10 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_version: ${{ steps.version.outputs.release_version }}
+
     steps:
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Verify release tag is on main
@@ -36,12 +39,14 @@ jobs:
           else
             VERSION="${GITHUB_REF_NAME#v}"
           fi
+
           VERSION="${VERSION#v}"
           echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
 
   build-release:
     needs: prepare-release
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +59,7 @@ jobs:
             firmware: firmware-x4-pro
           - environment: x4-classic
             firmware: firmware-x4-classic
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -72,8 +78,6 @@ jobs:
       - name: Cache PlatformIO packages
         uses: actions/cache@v4
         with:
-          # Do not cache PlatformIO's Python virtual environment. It is tied to
-          # the runner's Python and can become invalid when restored elsewhere.
           path: |
             ~/.platformio/packages
             ~/.platformio/platforms
@@ -87,9 +91,6 @@ jobs:
           PIO_ENV: ${{ matrix.environment }}
         run: |
           set -euo pipefail
-          # custom_sdkconfig runs a nested `pio run` from ~/.platformio/penv.
-          # Keep that core on the same version as the outer core.
-          # See https://github.com/pioarduino/platform-espressif32/issues/529
           pio pkg install -e "$PIO_ENV"
           uv pip install --python ~/.platformio/penv/bin/python "pioarduino==6.1.19"
           ~/.platformio/penv/bin/pio --version
@@ -116,13 +117,16 @@ jobs:
     needs:
       - prepare-release
       - build-release
+
     runs-on: ubuntu-latest
+
     env:
       RELEASE_VERSION: ${{ needs.prepare-release.outputs.release_version }}
+
     steps:
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - uses: actions/setup-python@v6
@@ -170,11 +174,14 @@ jobs:
           git fetch origin "$DEFAULT_BRANCH"
           git worktree add ../crossink-pages "origin/$DEFAULT_BRANCH"
           cp ".pio/build/catalog" "../crossink-pages/docs/catalog"
+
           cd ../crossink-pages
+
           if git diff --quiet -- docs/catalog; then
             echo "docs/catalog is already current"
             exit 0
           fi
+
           git add docs/catalog
           git commit -S -m "Update release manifests for v${RELEASE_VERSION}"
           git push origin "HEAD:$DEFAULT_BRANCH"
@@ -182,7 +189,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ env.RELEASE_VERSION }}
           target_commitish: ${{ github.sha }}
           draft: true
